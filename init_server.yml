@@ -1,0 +1,22 @@
+- hosts: testserver
+  remote_user: root
+  tasks:
+  - name: Create admin group 'wheel'
+    group:
+      name: wheel
+  - name: Allow 'wheel' group users have passwordless sudo
+    lineinfile:
+      dest: /etc/sudoers
+      regexp: '^%wheel'
+      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+  - name: Create my user 'ray' in group 'wheel'
+    user:
+      name: ray
+      groups: wheel
+      shell: /bin/bash
+  - name: Set my authorized_keys
+    authorized_key:
+      user: ray
+      key: "{{ lookup('file', './configs/authorized_keys') }}"
+
