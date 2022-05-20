@@ -18,5 +18,18 @@
   - name: Set my authorized_keys
     authorized_key:
       user: ray
-      key: "{{ lookup('file', './configs/authorized_keys') }}"
+      key: "{{ lookup('file', '../configs/authorized_keys') }}"
+  - name: Edit sshd config
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+    loop:
+      - { regexp: '^Port ', line: 'Port 32200' }
+      - { regexp: '^PermitRootLogin ', line: 'PermitRootLogin yes' }
+      - { regexp: '^PasswordAuthentication ', line: 'PasswordAuthentication no' }
+    notify:
+    - Restart sshd
+  handlers:
+  - import_tasks: ../handlers/main.yml
 

@@ -1,0 +1,8 @@
+---
+# Handlers for common notifications
+
+- name: Restart sshd
+  service:
+    name: sshd
+    state: restarted
+  listen: "Restart sshd"
