@@ -1,0 +1,2 @@
+[testserver]
+175.178.254.205 ansible_port=22 ansible_user=root
