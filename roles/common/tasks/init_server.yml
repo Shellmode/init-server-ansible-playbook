@@ -1,27 +1,31 @@
 - hosts: testserver
   remote_user: root
   tasks:
-  - name: Create admin group 'wheel'
+
+  # USER & GROUP
+  - name: USER&GROUP | Create admin group 'wheel'
     group:
-      name: wheel
-  - name: Allow 'wheel' group users have passwordless sudo
+      name: "wheel"
+  - name: USER&GROUP | Allow 'wheel' group users have passwordless sudo
     lineinfile:
-      dest: /etc/sudoers
-      regexp: '^%wheel'
-      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
-      validate: 'visudo -cf %s'
-  - name: Create my user 'ray' in group 'wheel'
+      dest: "/etc/sudoers"
+      regexp: "^%wheel"
+      line: "%wheel ALL=(ALL) NOPASSWD: ALL"
+      validate: "visudo -cf %s"
+  - name: USER&GROUP | Create my user 'ray' in group 'wheel'
     user:
-      name: ray
-      groups: wheel
-      shell: /bin/bash
-  - name: Set my authorized_keys
+      name: "ray"
+      groups: "wheel"
+      shell: "/bin/bash"
+
+  # SSH
+  - name: SSH | Set my authorized_keys
     authorized_key:
-      user: ray
+      user: "ray"
       key: "{{ lookup('file', '../configs/authorized_keys') }}"
-  - name: Edit sshd config
+  - name: SSH | Edit sshd config
     lineinfile:
-      dest: /etc/ssh/sshd_config
+      dest: "/etc/ssh/sshd_config"
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
     loop:
@@ -30,6 +34,60 @@
       - { regexp: '^PasswordAuthentication ', line: 'PasswordAuthentication no' }
     notify:
     - Restart sshd
+
+  # VIM
+  - name: VIM | Copy vim configs
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest}}"
+      owner: "ray"
+      group: "ray"
+    loop:
+      - { src: "../configs/dot-vimrc", dest: "/home/ray/.vimrc" }
+      - { src: "../configs/dot-vim.zip", dest: "/tmp/dot-vim.zip" }
+  - name: VIM | unarchive dot-vim
+    shell:
+      cmd: 'if [ ! -d "/home/ray/.vim" ]; then rm -rf /home/ray/dot-vim && unzip /tmp/dot-vim.zip -d /home/ray && mv /home/ray/dot-vim /home/ray/.vim && chown -R ray.ray /home/ray/.vim; else echo "/home/ray/.vim already exists"; fi'
+  - name: VIM | Configure root vim
+    file:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      state: "link"
+      force: "yes"
+    loop:
+      - { src: "/home/ray/.vimrc", dest: "/root/.vimrc"}
+      - { src: "/home/ray/.vim", dest: "/root/.vim"}
+
+  # bashrc
+  - name: BASHRC | Copy bashrc configs
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest}}"
+      owner: "ray"
+      group: "ray"
+    loop:
+      - { src: "../configs/dot-bashrc", dest: "/home/ray/.bashrc" }
+  - name: BASHRC | Configure root bashrc
+    file:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      state: "link"
+      force: "yes"
+    loop:
+      - { src: "/home/ray/.bashrc", dest: "/root/.bashrc"}
+
+  # Tmux
+  - name: Tmux | Install tmux
+    package:
+      name: "tmux"
+      state: "latest"
+  - name: Tmux | Configure tmux
+    copy:
+      src: "../configs/dot-tmux.conf"
+      dest: "/home/ray/.tmux.conf"
+      owner: "ray"
+      group: "ray"
+
   handlers:
   - import_tasks: ../handlers/main.yml
 
